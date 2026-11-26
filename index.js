@@ -3,7 +3,6 @@ import fs from "fs";
 import bodyParser from "body-parser";
 //Cambio
 //En db.json presionar shift + alt + f, si es que el json perdio el formato
-import path from "path";
 
 const app = express();
 
