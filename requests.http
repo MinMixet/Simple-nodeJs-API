@@ -1,0 +1,29 @@
+Get http://localhost:3000/books HTTP/1.1
+
+###
+
+Get http://localhost:3000/books/2 HTTP/1.1
+
+###
+
+POST http://localhost:3000/books HTTP/1.1
+Content-Type: application/json
+
+{
+    "title": "The hunger games",
+    "author": "Suzanne Collins",
+    "year": 2008
+}
+
+###
+
+Put http://localhost:3000/books/1 HTTP/1.1
+Content-Type: application/json
+
+{
+    "year": 2015
+}
+
+###
+
+Delete http://localhost:3000/books/4 HTTP/1.1
