@@ -4,6 +4,17 @@ import bodyParser from "body-parser";
 //Cambio
 //En db.json presionar shift + alt + f, si es que el json perdio el formato
 
+/*Will be implemented for solving case "readData() fails"
+let data
+  try{
+    data = readData();
+  }
+  catch(err){
+    console.error("Error reading the book", err);
+    return res.status(500).JSON({error: "Could not load database"});
+  }
+*/
+
 const app = express();
 
 app.use(bodyParser.json());
@@ -41,11 +52,13 @@ app.get("/books/:id", (req, res) => {
   res.json(book);
 });
 
+//Solved counter id problem
 app.post("/books", (req, res) => {
   const data = readData();
   const body = req.body;
+  const IdMax = Math.max(0, ...data.books.map((book) => book.id));
   const newBook = {
-    id: data.books.length + 1,
+    id: IdMax + 1,
     ...body,
   };
   data.books.push(newBook);
@@ -53,11 +66,15 @@ app.post("/books", (req, res) => {
   res.json(newBook);
 });
 
+//Solved not found bookIndex problem
 app.put("/books/:id", (req, res) => {
   const data = readData();
   const body = req.body;
   const id = parseInt(req.params.id);
   const bookIndex = data.books.findIndex((book) => book.id === id);
+  if (bookIndex === -1) {
+    return res.stutus(404).JSON({ error: "Book not found" });
+  }
   data.books[bookIndex] = {
     ...data.books[bookIndex],
     ...body,
@@ -66,10 +83,14 @@ app.put("/books/:id", (req, res) => {
   res.json({ message: "Book updated successfully" });
 });
 
+//Solved not found bookIndex problem
 app.delete("/books/:id", (req, res) => {
   const data = readData();
   const id = parseInt(req.params.id);
   const bookIndex = data.books.findIndex((book) => book.id === id);
+  if (bookIndex === -1) {
+    return res.status(404).JSON({ error: "Book not found" });
+  }
   data.books.splice(bookIndex, 1);
   writeData(data);
   res.json({ message: "Book deleted successfully" });
