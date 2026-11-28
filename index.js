@@ -1,12 +1,17 @@
 import express from "express";
 import fs from "fs";
 import bodyParser from "body-parser";
+import zod from "zod";
 //Cambio
 //En db.json presionar shift + alt + f, si es que el json perdio el formato
 
-/*Will be implemented for solving case "readData() fails"
-
-*/
+const bookShema = zod
+  .object({
+    name: zod.string().trim().min(1),
+    author: zod.string().trim().min(1),
+    year: zod.number().int(),
+  })
+  .strict();
 
 const app = express();
 
@@ -73,11 +78,15 @@ app.post("/books", (req, res) => {
     console.error("Error reading the book", err);
     return res.status(500).json({ error: "Could not load database" });
   }
-  const body = req.body;
+  const parsedBody = bookShema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json({ error: "Invalid book data" });
+  }
+
   const IdMax = Math.max(0, ...data.books.map((book) => book.id));
   const newBook = {
     id: IdMax + 1,
-    ...body,
+    ...parsedBody.data,
   };
   data.books.push(newBook);
   writeData(data);
@@ -93,7 +102,6 @@ app.put("/books/:id", (req, res) => {
     console.error("Error reading the book", err);
     return res.status(500).json({ error: "Could not load database" });
   }
-  const body = req.body;
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
     return res.status(400).json({ error: "Invalid book ID" });
@@ -102,9 +110,15 @@ app.put("/books/:id", (req, res) => {
   if (bookIndex === -1) {
     return res.status(404).json({ error: "Book not found" });
   }
+
+  const parsedbody = bookShema.safeParse(req.body);
+  if (!parsedbody.success) {
+    return res.status(400).json({ error: "Invalid book data" });
+  }
+
   data.books[bookIndex] = {
     ...data.books[bookIndex],
-    ...body,
+    ...parsedbody.data,
   };
   writeData(data);
   res.json({ message: "Book updated successfully" });
