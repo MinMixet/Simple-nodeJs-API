@@ -1,8 +1,17 @@
 import express from "express";
 import fs from "fs";
 import bodyParser from "body-parser";
+import zod from "zod";
 //Cambio
 //En db.json presionar shift + alt + f, si es que el json perdio el formato
+
+const bookShema = zod
+  .object({
+    name: zod.string().trim().min(1),
+    author: zod.string().trim().min(1),
+    year: zod.number().int(),
+  })
+  .strict();
 
 const app = express();
 
@@ -30,46 +39,108 @@ app.get("/", (req, res) => {
 });
 
 app.get("/books", (req, res) => {
-  const data = readData();
+  let data;
+  try {
+    data = readData();
+  } catch (err) {
+    console.error("Error reading the book", err);
+    return res.status(500).json({ error: "Could not load database" });
+  }
   res.json(data.books);
 });
 
 app.get("/books/:id", (req, res) => {
-  const data = readData();
-  const id = parseInt(req.params.id);
+  let data;
+  try {
+    data = readData();
+  } catch (err) {
+    console.error("Error reading the book", err);
+    return res.status(500).json({ error: "Could not load database" });
+  }
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: "Invalid book ID" });
+  }
   const book = data.books.find((book) => book.id === id);
+  console.log(book);
+  if (!book) {
+    return res.status(404).json({ error: "Book not found" });
+  }
   res.json(book);
 });
 
+//Solved counter id problem
 app.post("/books", (req, res) => {
-  const data = readData();
-  const body = req.body;
+  let data;
+  try {
+    data = readData();
+  } catch (err) {
+    console.error("Error reading the book", err);
+    return res.status(500).json({ error: "Could not load database" });
+  }
+  const parsedBody = bookShema.safeParse(req.body);
+  if (!parsedBody.success) {
+    return res.status(400).json({ error: "Invalid book data" });
+  }
+
+  const IdMax = Math.max(0, ...data.books.map((book) => book.id));
   const newBook = {
-    id: data.books.length + 1,
-    ...body,
+    id: IdMax + 1,
+    ...parsedBody.data,
   };
   data.books.push(newBook);
   writeData(data);
   res.json(newBook);
 });
 
+//Solved not found bookIndex problem
 app.put("/books/:id", (req, res) => {
-  const data = readData();
-  const body = req.body;
-  const id = parseInt(req.params.id);
+  let data;
+  try {
+    data = readData();
+  } catch (err) {
+    console.error("Error reading the book", err);
+    return res.status(500).json({ error: "Could not load database" });
+  }
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: "Invalid book ID" });
+  }
   const bookIndex = data.books.findIndex((book) => book.id === id);
+  if (bookIndex === -1) {
+    return res.status(404).json({ error: "Book not found" });
+  }
+
+  const parsedbody = bookShema.safeParse(req.body);
+  if (!parsedbody.success) {
+    return res.status(400).json({ error: "Invalid book data" });
+  }
+
   data.books[bookIndex] = {
     ...data.books[bookIndex],
-    ...body,
+    ...parsedbody.data,
   };
   writeData(data);
   res.json({ message: "Book updated successfully" });
 });
 
+//Solved not found bookIndex problem
 app.delete("/books/:id", (req, res) => {
-  const data = readData();
-  const id = parseInt(req.params.id);
+  let data;
+  try {
+    data = readData();
+  } catch (err) {
+    console.error("Error reading the book", err);
+    return res.status(500).json({ error: "Could not load database" });
+  }
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: "Invalid book ID" });
+  }
   const bookIndex = data.books.findIndex((book) => book.id === id);
+  if (bookIndex === -1) {
+    return res.status(404).json({ error: "Book not found" });
+  }
   data.books.splice(bookIndex, 1);
   writeData(data);
   res.json({ message: "Book deleted successfully" });
